@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block title%} ЦГС Самара - Вход {% endblock %}
+
+{% block page_content %}
+	<div class=page_header>
+		<h1>Портал ЦГС Самара - Вход</h1>
+	</div>
+    <div>
+        {{ wtf.quick_form(form) }}
+    </div>
+    <div>
+        <p>
+            Новый пользователь?
+            <a href="{{ url_for('auth.register') }}">Зарегистрироваться</a>
+        </p>
+    </div>
+{% endblock %}

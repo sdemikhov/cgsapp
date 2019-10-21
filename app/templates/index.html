@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title%} ЦГС Самара - главная страница {% endblock %}
+
+{% block page_content %}
+	<div class=page_header>
+		<h1>Портал ЦГС Самара</h1>
+	</div>
+    <div>
+		<a href="{{ url_for('main.secret') }}"><h2>Анекдот 18+</h2></a>
+	</div>
+{% endblock %}
