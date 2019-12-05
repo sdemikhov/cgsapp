@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block title%} ЦГС Самара - Управление учетными записями {% endblock %}
+
+{% block page_content %}
+	<div class=page_header>
+		<h1>Управление учетными записями</h1>
+	</div>
+    <div>
+        {% if expired is defined %}
+            <p>Регистрация открыта до {{ expired }}</p>
+        {% endif %}
+        {{ wtf.quick_form(form) }}
+    </div>
+{% endblock %}

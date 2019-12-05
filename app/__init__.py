@@ -9,6 +9,10 @@ from config import config
 bootstrap = Bootstrap()
 db = SQLAlchemy()
 login_manager = LoginManager()
+login_manager.login_message = (
+    u"Пожалуйста войдите в учетную запись для"
+    u" доступа к данной странице"
+    )
 
 def create_app(config_name):
     app = Flask(__name__)

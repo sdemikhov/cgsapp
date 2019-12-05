@@ -14,8 +14,12 @@
        <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav navbar-right">
                 {% if current_user.is_authenticated %}
+                    {% if current_user.is_administrator() %}
+                    <li><a href="{{ url_for('main.manage_users') }}">Управление учетными записями</a></li>
+                    {% endif %}
                 <li><a href="{{ url_for('auth.logout') }}">Выйти</a></li>
                 {% else %}
+                <li><a href="{{ url_for('auth.register') }}">Зарегистрироваться</a></li>
                 <li><a href="{{ url_for('auth.login') }}">Войти</a></li>
                 {% endif %}
             </ul>
