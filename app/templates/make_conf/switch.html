@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block title%} ЦГС Самара - Сформировать конфиг для коммутатора {% endblock %}
+
+{% block page_content %}
+	<div class=page_header>
+		<h1>Сформировать конфиг для коммутатора</h1>
+	</div>
+    <div>
+        {% if current_user.can(Permission.SW_n_AP) %}
+            {% if form1 is defined %}
+                <p>Шаг 1:</p>
+                {{ wtf.quick_form(form1) }}
+            {% endif %}
+            {% if form2 is defined %}
+                <p>Шаг 2:</p>
+                {{ wtf.quick_form(form2) }}
+            {% endif %}
+            {% if form3 is defined %}
+                <p>Шаг 3:</p>
+                {{ wtf.quick_form(form3) }}
+            {% endif %}
+        {% endif %}
+    </div>
+{% endblock %}

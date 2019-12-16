@@ -6,11 +6,11 @@ from wtforms import ValidationError
 
 class ManageUsersForm(FlaskForm):
     registration = DateTimeField(
-        'Задать дату окончания регистрации (гггг-мм-дд чч:мм:сс):',
+        'Изменить дату окончания регистрации (гггг-мм-дд чч:мм:сс):',
         format='%Y-%m-%d %H:%M:%S'
         )
     users = SelectMultipleField('Выберите учетные записи:',
-                                 coerce=int)
+                                coerce=int)
     edit = SelectField('Действие над выбранными записями:',
                        coerce=int)
     submit = SubmitField('Выполнить')

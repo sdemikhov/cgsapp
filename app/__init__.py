@@ -33,4 +33,7 @@ def create_app(config_name):
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
+    from .makeconf import make_conf as make_conf_blueprint
+    app.register_blueprint(make_conf_blueprint, url_prefix='/make_conf')
+
     return app

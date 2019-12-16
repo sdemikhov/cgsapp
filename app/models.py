@@ -1,8 +1,13 @@
 from flask_login import UserMixin, AnonymousUserMixin
-from . import db, login_manager
 from flask import current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+import yaml
+from collections import namedtuple
+import ipaddress
+from itertools import count
+
+from . import db, login_manager
 
 
 class Permission:
@@ -12,6 +17,102 @@ class Permission:
     SW_n_AP = 64
     BRAS = 128
     ADMIN = 256
+
+
+class MandatoryVlan:
+    ur_pppoe = 200
+    multicast = 4024
+
+
+class PCV:
+    @staticmethod
+    def generate_groups():
+        c = count()
+        groups = [
+            (next(c), f'{2200 + hundred + dozen}-{2200 + hundred + dozen+29}')
+             for hundred in range(0, 701, 100)
+             for dozen in range(1, 62, 30)
+        ]
+        return groups
+
+    @classmethod
+    def get_pcv_group(self, idx):
+        _, group = self.generate_groups()[idx]
+        start_vlan, end_vlan = group.split('-')
+        return [vlan for vlan in range(int(start_vlan),
+                                       int(end_vlan)+1)]
+
+
+class SwitchModel(db.Model):
+    __tablename__ = 'switch_model'
+    id = db.Column(db.Integer, primary_key=True)
+    manufacturer = db.Column(db.String(64), nullable=False)
+    model = db.Column(db.String(64), nullable=False)
+    port_names = db.Column(db.String(256), nullable=False)
+    firmware = db.Column(db.String(64), nullable=False)
+    template = db.Column(db.String(64), nullable=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ports = self.port_names.split(',')
+
+    def __repr__(self):
+        return f'<SwitchModel {self.manufacturer}_{self.model}>'
+
+
+class StorageForMakeConfig(db.Model):
+    __tablename__ = 'storage_for_make_config'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    mku_info_id = db.Column(db.Integer, db.ForeignKey('mku_info.id'))
+    step = db.Column(db.Integer)
+    switch_model_id = db.Column(db.Integer,
+                                db.ForeignKey('switch_model.id'))
+    hostname = db.Column(db.String(64))
+    ipaddress = db.Column(db.String(64))
+    gateway = db.Column(db.String(64))
+    netmask = db.Column(db.String(64))
+    mng_vlan = db.Column(db.Integer)
+    client_ports = db.Column(db.String(64))
+    vlan_character = db.Column(db.String(64))
+    PCV_group = db.Column(db.Integer)
+    pppoe_single_vlan = db.Column(db.Integer)
+    switches_ports = db.Column(db.String(64))
+    switches_ports_vlans = db.Column(db.String(64))
+    switches_ports_uplink = db.Column(db.String(64))
+
+
+class MKUInfo(db.Model):
+    __tablename__ = 'mku_info'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), nullable=False)
+    network = db.Column(db.String(64), unique=True, nullable=False)
+    gateway = db.Column(db.String(64), unique=True, nullable=False)
+    mng_vlan = db.Column(db.Integer)
+
+    @staticmethod
+    def insert_mku_info():
+        MKU = namedtuple('MKU', 'name network gateway mng_vlan')
+        with open('mku_info.yaml') as f:
+            all_mku_info = yaml.load(f)
+        for m in all_mku_info:
+            m = MKU(*m)
+            mku = MKUInfo.query.filter_by(name=m.name).first()
+            if mku is None:
+                mku = MKUInfo(name = m.name,
+                              network = m.network,
+                              gateway = m.gateway,
+                              mng_vlan = m.mng_vlan)
+                db.session.add(mku)
+        db.session.commit()
+
+    @property
+    def netmask(self):
+        network = ipaddress.IPv4Network(self.network)
+        return str(network.netmask)
+
+    def __repr__(self):
+        return f'<MKUInfo {self.name}>'
 
 
 class Registration(db.Model):
@@ -26,7 +127,7 @@ class Registration(db.Model):
         db.session.commit()
 
     def __repr__(self):
-        return f'registration expire {self.registration_expire}'
+        return f'<registration expire {self.registration_expire}>'
 
 
 class Role(db.Model):

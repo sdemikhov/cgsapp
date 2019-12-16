@@ -48,5 +48,7 @@ def manage_users():
                 db.session.add(user)
         db.session.commit()
         return redirect(url_for('main.manage_users'))
+        
+    form.registration.data = registration.expired
     return render_template('manage_users.html', form=form,
                            expired=registration.expired)

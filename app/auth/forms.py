@@ -20,13 +20,13 @@ class RegistrationForm(FlaskForm):
                              validators=[DataRequired(), Length(1,64), 
                              Regexp('^[А-Яа-я]*$',
                              0,
-                             'поле может содержать только буквы')])
+                             'поле может содержать только кириллицу')])
 
     last_name = StringField('Фамилия',
                              validators=[DataRequired(), Length(1,64), 
                              Regexp('^[А-Яа-я]*$',
                              0,
-                             'поле может содержать только буквы')])
+                             'поле может содержать только кириллицу')])
                         
     password = PasswordField('Пароль',
                              validators=[
