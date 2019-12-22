@@ -100,7 +100,6 @@ class MakeConfigForm1(FlaskForm):
 class MakeConfigForm2(FlaskForm):
     # must add validators
     hostname = StringField('Hostname', validators=[
-        DataRequired()
         ])
     _forbidden_hostname_symbols = ['#', '>', '%', '!']
     ipaddress = StringField('IPv4', validators=[
@@ -116,7 +115,7 @@ class MakeConfigForm2(FlaskForm):
                                validators=[CheckPorts()])
     vlan_character = RadioField('Характер вланов', choices=[
         ('PCV','PCV'), ('single_vlan','Один влан на все порты')
-        ], validators=[Required(message='Неоходимо выбрать')])
+        ], validators=[DataRequired(message='Неоходимо выбрать')])
     PCV_group = SelectField('Диапазон вланов PCV', coerce=int)
     pppoe_single_vlan = StringField('Указать одиночный влан', validators=[
         CheckVlans(required_field=('vlan_character', 'single_vlan'))

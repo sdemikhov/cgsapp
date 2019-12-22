@@ -14,3 +14,11 @@ def convert_to_list(string):
         else:
             result += elem
     return result.split(',')
+
+def make_choices(model, choiced_attr, order_by=None):
+    if order_by:
+        order_by = getattr(model, order_by)
+    return [
+        (row.id, getattr(row, choiced_attr))
+         for row in model.query.order_by(order_by).all()
+        ]

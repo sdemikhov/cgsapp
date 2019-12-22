@@ -65,7 +65,7 @@ class StorageForMakeConfig(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
     mku_info_id = db.Column(db.Integer, db.ForeignKey('mku_info.id'))
-    step = db.Column(db.Integer)
+    step = db.Column(db.String(64))
     switch_model_id = db.Column(db.Integer,
                                 db.ForeignKey('switch_model.id'))
     hostname = db.Column(db.String(64))
