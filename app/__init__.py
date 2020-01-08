@@ -36,4 +36,7 @@ def create_app(config_name):
     from .makeconf import make_conf as make_conf_blueprint
     app.register_blueprint(make_conf_blueprint, url_prefix='/make_conf')
 
+    from .makeintf import make_intf as make_intf_blueprint
+    app.register_blueprint(make_intf_blueprint, url_prefix='/make_intf')
+
     return app

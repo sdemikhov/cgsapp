@@ -7,6 +7,8 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     CGSAPP_ADMIN = os.environ.get('CGSAPP_ADMIN')
+    NETMIKO_USER = os.environ.get('NETMIKO_USER')
+    NETMIKO_PASS = os.environ.get('NETMIKO_PASS')
 
 
 class DevelopmentConfig(Config):

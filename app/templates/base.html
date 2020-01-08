@@ -18,7 +18,14 @@
                         <li><a href="{{ url_for('make_conf.switch') }}">Создать конфиг коммутатора</a></li>
                     {% endif %}
                 {% endif %}
-            </ul>          
+            </ul>
+            <ul class="nav navbar-nav navbar-left">
+                {% if current_user.is_authenticated %}           
+                    {% if current_user.can(Permission.BRAS) %}
+                        <li><a href="{{ url_for('make_intf.index') }}">Создать интерфейс на BRAS</a></li>
+                    {% endif %}
+                {% endif %}
+            </ul>      
             <ul class="nav navbar-nav navbar-right">
                 {% if current_user.is_authenticated %}
                     {% if current_user.is_administrator() %}

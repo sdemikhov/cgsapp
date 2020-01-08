@@ -2,4 +2,6 @@ venv
 __pycache__
 *.sqlite
 mku_info.yaml
+interfaces_info.yaml
 switches_configuration
+switch_model_info.yaml

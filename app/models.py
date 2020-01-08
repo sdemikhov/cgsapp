@@ -8,6 +8,7 @@ import ipaddress
 from itertools import count
 
 from . import db, login_manager
+from .common_functions import convert_to_list
 
 
 class Permission:
@@ -22,6 +23,10 @@ class Permission:
 class MandatoryVlan:
     ur_pppoe = 200
     multicast = 4024
+
+    @classmethod
+    def get_all(self):
+        return [self.ur_pppoe, self.multicast]
 
 
 class PCV:
@@ -42,6 +47,13 @@ class PCV:
         return [vlan for vlan in range(int(start_vlan),
                                        int(end_vlan)+1)]
 
+    @classmethod
+    def get_pcv_group_with_related(self, idx):
+        result = []
+        for i in range(idx + 1):
+            result += self.get_pcv_group(i)
+        return result
+
 
 class SwitchModel(db.Model):
     __tablename__ = 'switch_model'
@@ -49,8 +61,22 @@ class SwitchModel(db.Model):
     manufacturer = db.Column(db.String(64), nullable=False)
     model = db.Column(db.String(64), nullable=False)
     port_names = db.Column(db.String(256), nullable=False)
-    firmware = db.Column(db.String(64), nullable=False)
-    template = db.Column(db.String(64), nullable=False)
+
+    @staticmethod
+    def insert_switch_model():
+        Switch_Model = namedtuple('Switch_Model',
+                                  'manufacturer model port_names')
+        with open('switch_model_info.yaml') as f:
+            all_switch_model_info = yaml.load(f)
+        for s in all_switch_model_info:
+            s = Switch_Model(*s)
+            switch = SwitchModel.query.filter_by(model=s.model).first()
+            if switch is None:
+                switch = SwitchModel(manufacturer = s.manufacturer,
+                                     model = s.model,
+                                     port_names = s.port_names)
+                db.session.add(switch)
+        db.session.commit()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -63,7 +89,8 @@ class SwitchModel(db.Model):
 class StorageForMakeConfig(db.Model):
     __tablename__ = 'storage_for_make_config'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                        unique=True, nullable=False)
     mku_info_id = db.Column(db.Integer, db.ForeignKey('mku_info.id'))
     step = db.Column(db.String(64))
     switch_model_id = db.Column(db.Integer,
@@ -80,6 +107,21 @@ class StorageForMakeConfig(db.Model):
     switches_ports = db.Column(db.String(64))
     switches_ports_vlans = db.Column(db.String(64))
     switches_ports_uplink = db.Column(db.String(64))
+
+    @property
+    def pcv_by_client_ports(self):
+        ports = [int(i) - 1 for i in convert_to_list(self.client_ports)]
+        if self.PCV_group or self.PCV_group == 0:
+            vlans = PCV.get_pcv_group(self.PCV_group)
+            return [vlans[i] for i in ports]
+        return []
+
+    def as_dict(self):
+        result = {}
+        for key, value in self.__dict__.items():
+            if not key.startswith('_') and 'id' not in key:
+                result[key] = value
+        return result
 
 
 class MKUInfo(db.Model):

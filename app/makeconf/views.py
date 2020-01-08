@@ -1,5 +1,6 @@
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
+from itertools import repeat
 
 from app import db
 from . import make_conf
@@ -10,24 +11,9 @@ from .forms import MakeConfigForm1, MakeConfigForm2, MakeConfigForm3
 from ..common_functions import convert_to_list, make_choices
 
 
-def check_params(storage, params):
-    for param in params:
-        if not getattr(storage, param):
-            return False
-    return True
-
-
-def generate_data_for_template(storage):
-    result = {}
-    need_convert = ['switches_ports_vlans',
-                    'client_ports',
-                    'switches_ports']
-    for key, value in storage.__dict__.items():
-        if not key.startswith('_') and 'id' not in key:
-            if key in need_convert:
-               value = convert_to_list(value)
-            result[key] = value
-    return result
+def merge_vlans(vlans):
+    result = [str(vlan) for vlan in sorted(set(vlans))]
+    return ','.join(result)
 
 
 @make_conf.route('/switch', methods=['GET', 'POST'])
@@ -43,7 +29,7 @@ def switch():
         switch_models_choices = make_choices(SwitchModel, 'model',
                                              'manufacturer')
         form1 = MakeConfigForm1(switch_models_choices, mku_info_choices)
-        if form1.validate_on_submit() and form1.submit1.data:
+        if form1.validate_on_submit():
             db.session.add(StorageForMakeConfig(
                            user_id=current_user.id,
                            mku_info_id=form1.mku_name.data,
@@ -59,7 +45,7 @@ def switch():
             db.session.delete(storage)
             db.session.commit()
             return redirect(url_for('make_conf.switch'))
-        if form2.validate_on_submit() and form2.submit2.data:
+        if form2.validate_on_submit():
             storage.hostname = form2.hostname.data
             if form2.vlan_character.data == 'PCV':
                 storage.PCV_group = form2.PCV_group.data
@@ -86,36 +72,56 @@ def switch():
             db.session.delete(storage)
             db.session.commit()
             return redirect(url_for('make_conf.switch'))
-        if form3.validate_on_submit() and form3.submit3.data:
-            storage.switches_ports = form3.switches_ports.data
-            storage.switches_ports_vlans = form3.switches_ports_vlans.data
-            storage.switches_ports_uplink = form3.switches_ports_uplink.data
-            sw_model=SwitchModel.query.get(storage.switch_model_id)
-            data = generate_data_for_template(storage)
-            if storage.PCV_group:
-                data['pcv_vlans'] = PCV.get_pcv_group(storage.PCV_group)
-            data['port_names'] = convert_to_list(
-                sw_model.port_names
+        if form3.validate_on_submit():
+            sw_model = SwitchModel.query.get(storage.switch_model_id)
+
+            port_names = convert_to_list(sw_model.port_names)
+            client_ports = [
+                int(port)
+                for port in sorted(
+                    set(convert_to_list(storage.client_ports)),
+                    key=(lambda x:int(x))
+                    )
+                ]
+            switches_ports = convert_to_list(form3.switches_ports.data)
+            switches_vlans = convert_to_list(
+                form3.switches_ports_vlans.data
                 )
+            uplink = form3.switches_ports_uplink.data
+
+            data = storage.as_dict()
+            data['uplink_port'] = port_names[int(uplink) - 1]
+            data['switches_ports_vlans'] = [
+                vlan
+                for vlan in sorted(
+                    switches_vlans,
+                    key=(lambda x:int(x))
+                    )
+                ]
+            data['switches_port_names'] = [
+                port_names[int(port) - 1]
+                for port in switches_ports
+                ]
+            if storage.vlan_character == 'PCV':
+                client_vlans = storage.pcv_by_client_ports
+            elif storage.vlan_character == 'single_vlan':
+                client_vlans = repeat(storage.pppoe_single_vlan)
+            data['client_port_names_with_vlans'] = {
+                port_names[port - 1]: vlan
+                for port, vlan in zip(client_ports, client_vlans)
+                }
+
             url = ('make_conf/switches_configuration/' + \
-                sw_model.manufacturer + '/' + \
-                sw_model.template)
+                sw_model.manufacturer + '/' + sw_model.model + '.html')
+                
             db.session.delete(storage)
             db.session.commit()
             return render_template(url, data=data)
         if storage.vlan_character == 'PCV':
-            pcv_vlans = [str(vlan)
-                for vlan in PCV.get_pcv_group(storage.PCV_group)
-                ]
-            form3.switches_ports_vlans.data = (
-                f'{storage.mng_vlan},{MandatoryVlan.ur_pppoe}'
-                f',{",".join(pcv_vlans)}'
-                f',{MandatoryVlan.multicast}'
-                )
+            client_vlans = storage.pcv_by_client_ports
         elif storage.vlan_character == 'single_vlan':
-            form3.switches_ports_vlans.data = (
-                f'{storage.mng_vlan},{MandatoryVlan.ur_pppoe}'
-                f',{storage.pppoe_single_vlan}'
-                f',{MandatoryVlan.multicast}'
-                )
+            client_vlans = [storage.pppoe_single_vlan]
+        form3.switches_ports_vlans.data = merge_vlans(
+            client_vlans + MandatoryVlan.get_all() + [storage.mng_vlan]
+            )
         return render_template('make_conf/switch.html' ,form3=form3)
